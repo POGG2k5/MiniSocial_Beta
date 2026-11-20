@@ -21,12 +21,13 @@ import { errorMessage } from '../lib/errors';
 import { PRIVACY_LABEL, compactNumber, timeAgo } from '../lib/format';
 import { toast } from '../store/toast';
 import CommentThread from './CommentThread';
+import PhotoViewer from './PhotoViewer';
 import ReportDialog from './ReportDialog';
 import { Avatar, Modal, RetryImage, UserLink } from './ui';
 
 const PRIVACY_ICON = { PUBLIC: Globe2, FRIENDS: Users, PRIVATE: Lock };
 
-function MediaGrid({ media }) {
+function MediaGrid({ media, onOpenImage }) {
   if (!media?.length) return null;
   const shown = media.slice(0, 4);
   return (
@@ -48,15 +49,20 @@ function MediaGrid({ media }) {
               className="h-full max-h-[560px] w-full bg-black object-contain"
             />
           ) : (
-            <a href={m.file_url} target="_blank" rel="noreferrer">
+            <button
+              type="button"
+              className="block h-full w-full cursor-zoom-in"
+              onClick={() => onOpenImage(m.id)}
+              aria-label="Xem ảnh"
+            >
               <RetryImage
                 src={m.file_url}
                 className={clsx('w-full object-cover', shown.length > 1 ? 'h-full' : 'max-h-[560px]')}
               />
-            </a>
+            </button>
           )}
           {i === 3 && media.length > 4 && (
-            <div className="absolute inset-0 flex items-center justify-center bg-ink-900/55 text-2xl font-bold text-white">
+            <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-ink-900/55 text-2xl font-bold text-white">
               +{media.length - 4}
             </div>
           )}
@@ -120,6 +126,7 @@ export default function PostCard({ post: initial, queryKeys = [['feed']] }) {
   const [sharing, setSharing] = useState(false);
   const [shareText, setShareText] = useState('');
   const [report, setReport] = useState(null);
+  const [viewerIndex, setViewerIndex] = useState(null);
   useEffect(() => setPost(initial), [initial]);
   const refresh = () => queryKeys.forEach((k) => qc.invalidateQueries({ queryKey: k }));
   const onError = (e) => toast.error(errorMessage(e));
@@ -161,7 +168,7 @@ export default function PostCard({ post: initial, queryKeys = [['feed']] }) {
     onError,
   });
   const share = useMutation({
-    mutationFn: () => postApi.share(post.id, shareText),
+    mutationFn: (text) => postApi.share(post.id, text),
     onSuccess: () => {
       toast.success('Đã chia sẻ lên trang cá nhân');
       setSharing(false);
@@ -173,6 +180,8 @@ export default function PostCard({ post: initial, queryKeys = [['feed']] }) {
 
   if (post._deleted) return null;
   const PrivacyIcon = PRIVACY_ICON[post.privacy] || Globe2;
+  const images = (post.media || []).filter((m) => m.media_type !== 'VIDEO');
+  const openImage = (id) => setViewerIndex(Math.max(0, images.findIndex((m) => m.id === id)));
 
   return (
     <article className="card overflow-hidden">
@@ -236,7 +245,7 @@ export default function PostCard({ post: initial, queryKeys = [['feed']] }) {
         )}
       </div>
 
-      <MediaGrid media={post.media} />
+      <MediaGrid media={post.media} onOpenImage={openImage} />
 
       <div className="flex items-center justify-between px-4 py-2 text-xs text-muted">
         <span>{post.likes_count > 0 && `${compactNumber(post.likes_count)} lượt thích`}</span>
@@ -291,10 +300,23 @@ export default function PostCard({ post: initial, queryKeys = [['feed']] }) {
           value={shareText}
           onChange={(e) => setShareText(e.target.value)}
         />
-        <button className="btn-primary mt-3 w-full" onClick={() => share.mutate()} disabled={share.isPending}>
+        <button className="btn-primary mt-3 w-full" onClick={() => share.mutate(shareText)} disabled={share.isPending}>
           Chia sẻ lên trang cá nhân
         </button>
       </Modal>
+      {viewerIndex !== null && (
+        <PhotoViewer
+          post={post}
+          images={images}
+          startIndex={viewerIndex}
+          onClose={() => setViewerIndex(null)}
+          onLike={() => like.mutate()}
+          canShare={post.privacy === 'PUBLIC' && !post.group}
+          onShare={(text, done) => share.mutate(text, { onSuccess: done })}
+          sharePending={share.isPending}
+          onCountChange={(d) => setPost((p) => ({ ...p, comments_count: p.comments_count + d }))}
+        />
+      )}
       {report && <ReportDialog target={report} onClose={() => setReport(null)} />}
     </article>
   );
