@@ -29,3 +29,6 @@ backups/
 .vscode/
 .idea/
 .DS_Store
+
+# Celery Beat (file lịch chạy tự sinh khi chạy worker -B)
+backend/celerybeat-schedule*
