@@ -1,0 +1,98 @@
+# CD: chỉ chạy khi code được merge vào main.
+# Job 4: build image đa kiến trúc (amd64 + arm64 cho Oracle Cloud ARM) đẩy lên GHCR, gắn tag <sha> + latest.
+# Job 5: đẩy SPA lên Cloudflare Pages; SSH vào VPS chạy deploy.sh (pull, up, migrate, health check).
+name: Deploy Production
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  IMAGE: ghcr.io/${{ github.repository_owner }}/minisocial-backend
+
+jobs:
+  build-push:
+    name: "4. Build & Push image"
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.vars.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: vars
+        run: echo "tag=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: ./backend
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ${{ env.IMAGE }}:${{ steps.vars.outputs.tag }}
+            ${{ env.IMAGE }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy-frontend:
+    name: "5a. Deploy SPA -> Cloudflare Pages"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "20", cache: npm, cache-dependency-path: frontend/package-lock.json }
+      - working-directory: frontend
+        env:
+          VITE_API_URL: ${{ vars.VITE_API_URL }}
+          VITE_WS_URL: ${{ vars.VITE_WS_URL }}
+          VITE_SENTRY_DSN: ${{ vars.VITE_SENTRY_DSN }}
+        run: |
+          npm ci
+          npm run build
+      - uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy frontend/dist --project-name=${{ vars.CF_PAGES_PROJECT }} --branch=main
+
+  deploy-backend:
+    name: "5b. Deploy backend -> VPS"
+    needs: build-push
+    runs-on: ubuntu-latest
+    steps:
+      - uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_SSH_PORT || 22 }}
+          script: |
+            cd /opt/minisocial
+            git pull --ff-only
+            echo "${{ secrets.GHCR_READ_TOKEN }}" | docker login ghcr.io -u "${{ github.repository_owner }}" --password-stdin
+            IMAGE_TAG=${{ needs.build-push.outputs.tag }} ./scripts/deploy.sh
+
+  notify:
+    name: Thông báo Discord
+    needs: [build-push, deploy-frontend, deploy-backend]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Gửi kết quả triển khai
+        env:
+          WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          STATUS: ${{ (needs.deploy-backend.result == 'success' && needs.deploy-frontend.result == 'success') && 'THÀNH CÔNG ✅' || 'THẤT BẠI ❌' }}
+        run: |
+          [ -z "$WEBHOOK" ] && exit 0
+          curl -fsS -H "Content-Type: application/json" -X POST "$WEBHOOK" -d @- <<JSON
+          {"content": "**Deploy $STATUS** — commit \`${GITHUB_SHA::7}\` bởi ${{ github.actor }}\n${{ github.event.head_commit.message }}\n${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"}
+          JSON

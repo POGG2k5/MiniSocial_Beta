@@ -1,0 +1,31 @@
+# Quay lui thủ công: Actions > Rollback Production > Run workflow > nhập mã commit (7 ký tự) của bản ổn định.
+name: Rollback Production
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag image ổn định trước đó (mã commit 7 ký tự)"
+        required: true
+
+jobs:
+  rollback:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_SSH_PORT || 22 }}
+          script: |
+            cd /opt/minisocial
+            ./scripts/rollback.sh ${{ github.event.inputs.tag }}
+      - name: Thông báo Discord
+        if: always()
+        env:
+          WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: |
+          [ -z "$WEBHOOK" ] && exit 0
+          curl -fsS -H "Content-Type: application/json" -X POST "$WEBHOOK" \
+            -d "{\"content\": \"⏪ Rollback về \`${{ github.event.inputs.tag }}\` bởi ${{ github.actor }}: ${{ job.status }}\"}"
