@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Camera, MapPin, Cake, MessageCircle, Ban, Flag, Pencil, UserX } from 'lucide-react';
 import { chatApi, mediaApi, postApi, userApi } from '../api/endpoints';
+import { confirmDialog } from '../components/ConfirmDialog';
 import FriendButton from '../components/FriendButton';
 import PostCard from '../components/PostCard';
 import PostComposer from '../components/PostComposer';
@@ -225,10 +226,15 @@ export default function ProfilePage() {
                       className="btn-ghost px-3"
                       title="Chặn"
                       aria-label="Chặn"
-                      onClick={() =>
-                        window.confirm(`Chặn ${p.full_name}? Hai bạn sẽ không thấy nhau nữa.`) &&
-                        block.mutate()
-                      }
+                      onClick={async () => {
+                        const ok = await confirmDialog({
+                          title: `Chặn ${p.full_name}?`,
+                          message: 'Hai bạn sẽ không thấy nhau, không nhắn tin và không kết bạn được nữa.',
+                          confirmText: 'Chặn',
+                          danger: true,
+                        });
+                        if (ok) block.mutate();
+                      }}
                     >
                       <Ban className="h-4 w-4" />
                     </button>

@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect } from 'react';
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { refreshSession } from './api/client';
 import AppShell from './components/AppShell';
+import { ConfirmHost } from './components/ConfirmDialog';
 import { PageLoader, Toaster } from './components/ui';
 import { useAuth } from './store/auth';
 import LoginPage from './pages/auth/LoginPage';
@@ -104,6 +105,7 @@ export default function App() {
         </Routes>
       </Suspense>
       <Toaster />
+      <ConfirmHost />
     </>
   );
 }

@@ -3,6 +3,7 @@ import { UserPlus, UserCheck, Clock, UserX } from 'lucide-react';
 import { userApi } from '../api/endpoints';
 import { errorMessage } from '../lib/errors';
 import { toast } from '../store/toast';
+import { confirmDialog } from './ConfirmDialog';
 
 /** Nút thể hiện máy trạng thái kết bạn: NONE -> PENDING -> FRIENDS. */
 export default function FriendButton({ userId, relationship, onChanged }) {
@@ -44,7 +45,15 @@ export default function FriendButton({ userId, relationship, onChanged }) {
       <button
         className="btn-ghost"
         disabled={busy}
-        onClick={() => window.confirm('Hủy kết bạn với người này?') && m.mutate('unfriend')}
+        onClick={async () => {
+          const ok = await confirmDialog({
+            title: 'Hủy kết bạn?',
+            message: 'Hai bạn sẽ không còn thấy bài viết chỉ dành cho bạn bè của nhau.',
+            confirmText: 'Hủy kết bạn',
+            danger: true,
+          });
+          if (ok) m.mutate('unfriend');
+        }}
       >
         <UserCheck className="h-4 w-4" /> Bạn bè
       </button>
