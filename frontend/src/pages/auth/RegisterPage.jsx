@@ -20,11 +20,11 @@ const RULES = [
  */
 function isValidEmail(email) {
   // RFC-based but stricter: local@domain.tld
-  const re = /^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/;
+  const re = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
   if (!re.test(email)) return false;
   const [, domain] = email.split('@');
   // domain không được bắt đầu hoặc kết thúc bằng dấu chấm/gạch ngang
-  if (/^[.\-]|[.\-]$/.test(domain)) return false;
+  if (/^[.-]|[.-]$/.test(domain)) return false;
   // domain phải có ít nhất một dấu chấm và TLD >= 2 ký tự
   const parts = domain.split('.');
   if (parts.length < 2) return false;
@@ -103,7 +103,7 @@ export default function RegisterPage() {
             placeholder="Nhập họ và tên thật của bạn"
           />
           {form.full_name.length > 0 && !isNameValid && (
-            <p className="mt-1 text-xs text-error">Tên không được chỉ chứa khoảng trắng.</p>
+            <p className="mt-1 text-xs text-danger">Tên không được chỉ chứa khoảng trắng.</p>
           )}
         </div>
         <div>
@@ -121,7 +121,7 @@ export default function RegisterPage() {
             placeholder="example@domain.com"
           />
           {form.email.length > 0 && !isEmailValid && (
-            <p className="mt-1 text-xs text-error">Email không hợp lệ (vd: example@gmail.com).</p>
+            <p className="mt-1 text-xs text-danger">Email không hợp lệ (vd: example@gmail.com).</p>
           )}
         </div>
         <div>
@@ -158,7 +158,10 @@ export default function RegisterPage() {
           </ul>
         </div>
         <FormError message={error} />
-        <button className="btn-primary w-full py-2.5" disabled={m.isPending || !strong || !isNameValid || !isEmailValid}>
+        <button
+          className="btn-primary w-full py-2.5"
+          disabled={m.isPending || !strong || !isNameValid || !isEmailValid}
+        >
           Đăng ký
         </button>
       </form>

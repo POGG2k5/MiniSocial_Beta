@@ -396,10 +396,20 @@ export default function ChatPage() {
   const { conversationId } = useParams();
   return (
     <div className="card grid h-[calc(100vh-140px)] overflow-hidden md:grid-cols-[300px_1fr] lg:h-[calc(100vh-100px)]">
-      <aside className={clsx('border-r border-line h-full min-h-0 overflow-hidden', conversationId && 'hidden md:block')}>
+      <aside
+        className={clsx(
+          'border-r border-line h-full min-h-0 overflow-hidden',
+          conversationId && 'hidden md:block',
+        )}
+      >
         <ConversationList activeId={conversationId} />
       </aside>
-      <section className={clsx('min-w-0 h-full min-h-0 flex flex-col overflow-hidden', !conversationId && 'hidden md:block')}>
+      <section
+        className={clsx(
+          'min-w-0 h-full min-h-0 flex flex-col overflow-hidden',
+          !conversationId && 'hidden md:block',
+        )}
+      >
         {conversationId ? (
           <Conversation key={conversationId} id={conversationId} />
         ) : (
