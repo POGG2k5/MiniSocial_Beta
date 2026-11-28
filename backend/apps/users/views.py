@@ -47,13 +47,16 @@ class SearchView(APIView):
         q = request.query_params.get("q", "").strip()
         users = services.search(request.user, q) if len(q) >= 2 else []
         return api_success(
-            [{**services.summarize(u), "relationship": services.relationship(request.user.id, u.id)} for u in users]
+            [
+                {**item, "relationship": services.relationship(request.user.id, item["id"])}
+                for item in services.summarize_with_mutual(request.user, users)
+            ]
         )
 
 
 class SuggestionsView(APIView):
     def get(self, request):
-        return api_success([services.summarize(u) for u in services.suggestions(request.user)])
+        return api_success(services.summarize_with_mutual(request.user, services.suggestions(request.user)))
 
 
 class FriendListView(APIView):

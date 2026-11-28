@@ -265,6 +265,37 @@ def list_blocked(user):
     return _users().filter(id__in=list(ids)).select_related("profile")
 
 
+def mutual_friend_counts(user_id, candidate_ids):
+    """
+    UPDATE_ADDFRIEND_01: số bạn chung giữa user và từng người trong candidate_ids.
+    Một truy vấn duy nhất trên friendships: cạnh ACCEPTED nối một bạn của user với một ứng viên.
+    """
+    candidates = {str(c) for c in candidate_ids}
+    counts = dict.fromkeys(candidates, 0)
+    my_friends = get_friend_ids(user_id)
+    if not candidates or not my_friends:
+        return counts
+    rows = (
+        Friendship.objects.filter(status=Friendship.Status.ACCEPTED)
+        .filter(
+            Q(sender_id__in=my_friends, receiver_id__in=candidates)
+            | Q(sender_id__in=candidates, receiver_id__in=my_friends)
+        )
+        .values_list("sender_id", "receiver_id")
+    )
+    for a, b in rows:
+        a, b = str(a), str(b)
+        candidate = a if a in candidates else b
+        counts[candidate] += 1
+    return counts
+
+
+def summarize_with_mutual(viewer, users):
+    users = list(users)
+    counts = mutual_friend_counts(viewer.id, [u.id for u in users])
+    return [{**summarize(u), "mutual_friends_count": counts.get(str(u.id), 0)} for u in users]
+
+
 def friends_count(user_id):
     return len(get_friend_ids(user_id))
 

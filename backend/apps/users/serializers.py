@@ -36,6 +36,8 @@ def profile_payload(user, viewer=None):
         data["relationship"] = services.relationship(viewer.id, user.id)
         if str(viewer.id) == str(user.id):
             data["email"] = user.email
+        else:
+            data["mutual_friends_count"] = services.mutual_friend_counts(viewer.id, [user.id])[str(user.id)]
     return data
 
 
