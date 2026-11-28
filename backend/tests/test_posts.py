@@ -156,3 +156,26 @@ def test_comment_badwords_censored(client_a):
     pid = _post(client_a, content="ok").data["data"]["id"]
     r = client_a.post(f"/api/v1/posts/{pid}/comments/", {"content": "đm thật"}, format="json")
     assert r.data["data"]["content"] == "** thật"
+
+
+@pytest.mark.parametrize("viewer_kind", ["stranger", "friend", "admin"])
+def test_profile_timeline_respects_privacy_for_every_viewer(user, other, admin_user, viewer_kind):
+    """BG_PROFILE_01: người khác (kể cả quản trị viên) không thấy bài riêng tư trên trang cá nhân."""
+    owner = auth_client(user)
+    for privacy in ("PUBLIC", "FRIENDS", "PRIVATE"):
+        _post(owner, content=privacy, privacy=privacy)
+    if viewer_kind == "friend":
+        befriend(user, other)
+        viewer = auth_client(other)
+    elif viewer_kind == "admin":
+        viewer = auth_client(admin_user)
+    else:
+        viewer = auth_client(UserFactory())
+    seen = {p["content"] for p in viewer.get(f"/api/v1/posts/user/{user.id}/").data["data"]["results"]}
+    expected = {"PUBLIC", "FRIENDS"} if viewer_kind == "friend" else {"PUBLIC"}
+    assert seen == expected
+    assert {p["content"] for p in owner.get(f"/api/v1/posts/user/{user.id}/").data["data"]["results"]} == {
+        "PUBLIC",
+        "FRIENDS",
+        "PRIVATE",
+    }

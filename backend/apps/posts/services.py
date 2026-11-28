@@ -225,11 +225,14 @@ def posts_by_ids(ids):
 
 
 def profile_queryset(viewer, author_id):
-    """Dòng thời gian trang cá nhân: lọc theo quyền xem giữa viewer và author."""
+    """
+    Dòng thời gian trang cá nhân: lọc theo quyền xem giữa viewer và author.
+    Quản trị viên cũng chỉ thấy như người dùng thường; bài vi phạm được xem qua trang báo cáo.
+    """
     if str(viewer.id) != str(author_id) and user_services.is_blocked(viewer.id, author_id):
         raise NotFound("Không tìm thấy người dùng")
     qs = Post.objects.filter(author_id=author_id, group_id__isnull=True, deleted_at__isnull=True)
-    if str(viewer.id) == str(author_id) or _is_admin(viewer):
+    if str(viewer.id) == str(author_id):
         return qs
     allowed = [Post.Privacy.PUBLIC]
     if user_services.are_friends(viewer.id, author_id):
