@@ -7,6 +7,7 @@ import PostCard from '../components/PostCard';
 import PostComposer from '../components/PostComposer';
 import { Avatar, EmptyState, LoadMore, PageLoader, UserLink } from '../components/ui';
 import { useCursorList } from '../hooks/useCursorList';
+import { mutualLabel } from '../lib/format';
 
 function Suggestions() {
   const q = useQuery({ queryKey: ['suggestions'], queryFn: userApi.suggestions });
@@ -18,7 +19,12 @@ function Suggestions() {
         {q.data.slice(0, 5).map((u) => (
           <li key={u.id} className="flex items-center gap-3">
             <Avatar user={u} />
-            <UserLink user={u} className="flex-1 truncate text-sm" />
+            <div className="min-w-0 flex-1">
+              <UserLink user={u} className="block truncate text-sm" />
+              {u.mutual_friends_count > 0 && (
+                <p className="text-xs text-muted">{mutualLabel(u.mutual_friends_count)}</p>
+              )}
+            </div>
             <FriendButton userId={u.id} relationship={{ status: 'NONE' }} onChanged={() => q.refetch()} />
           </li>
         ))}

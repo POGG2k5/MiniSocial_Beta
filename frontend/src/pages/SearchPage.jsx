@@ -6,6 +6,7 @@ import { userApi } from '../api/endpoints';
 import FriendButton from '../components/FriendButton';
 import { Avatar, EmptyState, PageLoader, UserLink } from '../components/ui';
 import { useDebounced } from '../hooks/useDebounced';
+import { mutualLabel } from '../lib/format';
 
 /** UC-08: tìm kiếm người dùng tiếng Việt có dấu / không dấu (MySQL FULLTEXT ngram). */
 export default function SearchPage() {
@@ -44,7 +45,12 @@ export default function SearchPage() {
           {results.data.map((u) => (
             <li key={u.id} className="flex items-center gap-3 px-4 py-3">
               <Avatar user={u} size={48} showOnline />
-              <UserLink user={u} className="flex-1 truncate" />
+              <div className="min-w-0 flex-1">
+                <UserLink user={u} className="block truncate" />
+                {u.mutual_friends_count > 0 && (
+                  <p className="text-xs text-muted">{mutualLabel(u.mutual_friends_count)}</p>
+                )}
+              </div>
               <FriendButton userId={u.id} relationship={u.relationship} onChanged={() => results.refetch()} />
             </li>
           ))}

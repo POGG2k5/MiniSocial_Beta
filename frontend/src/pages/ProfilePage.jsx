@@ -20,7 +20,7 @@ import {
 } from '../components/ui';
 import { useCursorList } from '../hooks/useCursorList';
 import { errorMessage } from '../lib/errors';
-import { timeAgo } from '../lib/format';
+import { mutualLabel, timeAgo } from '../lib/format';
 import { useAuth } from '../store/auth';
 import { toast } from '../store/toast';
 
@@ -206,7 +206,10 @@ export default function ProfilePage() {
             </div>
             <div className="min-w-0 flex-1 pb-1">
               <h1 className="text-2xl font-bold">{p.full_name}</h1>
-              <p className="text-sm text-muted">{p.friends_count} bạn bè</p>
+              <p className="text-sm text-muted">
+                {p.friends_count} bạn bè
+                {p.mutual_friends_count > 0 && ` · ${mutualLabel(p.mutual_friends_count)}`}
+              </p>
             </div>
             <div className="flex flex-wrap gap-2 pb-1">
               {isMe ? (

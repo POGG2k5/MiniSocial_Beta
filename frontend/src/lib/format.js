@@ -19,5 +19,10 @@ export function compactNumber(n) {
   return new Intl.NumberFormat('vi-VN', { notation: 'compact' }).format(n || 0);
 }
 
+/** UPDATE_ADDFRIEND_01: "3 bạn chung"; không có bạn chung thì trả chuỗi rỗng. */
+export function mutualLabel(count) {
+  return count > 0 ? `${count} bạn chung` : '';
+}
+
 export const PRIVACY_LABEL = { PUBLIC: 'Công khai', FRIENDS: 'Bạn bè', PRIVATE: 'Chỉ mình tôi' };
 export const ROLE_LABEL = { ADMIN: 'Quản trị viên', MOD: 'Kiểm duyệt viên', MEMBER: 'Thành viên' };

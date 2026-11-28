@@ -38,3 +38,11 @@ describe('cursorOf', () => {
     expect(cursorOf(null)).toBeUndefined();
   });
 });
+
+describe('mutualLabel', () => {
+  it('hiển thị số bạn chung, ẩn khi bằng 0', async () => {
+    const { mutualLabel } = await import('../lib/format');
+    expect(mutualLabel(3)).toBe('3 bạn chung');
+    expect(mutualLabel(0)).toBe('');
+  });
+});

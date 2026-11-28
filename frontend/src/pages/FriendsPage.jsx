@@ -5,7 +5,7 @@ import { userApi } from '../api/endpoints';
 import FriendButton from '../components/FriendButton';
 import { Avatar, EmptyState, PageLoader, Tabs, UserLink } from '../components/ui';
 import { errorMessage } from '../lib/errors';
-import { timeAgo } from '../lib/format';
+import { mutualLabel, timeAgo } from '../lib/format';
 import { toast } from '../store/toast';
 
 function Row({ user, children, sub }) {
@@ -101,7 +101,7 @@ export default function FriendsPage() {
             ))}
           {tab === 'suggest' &&
             (suggest.data || []).map((u) => (
-              <Row key={u.id} user={u}>
+              <Row key={u.id} user={u} sub={mutualLabel(u.mutual_friends_count)}>
                 <FriendButton
                   userId={u.id}
                   relationship={{ status: 'NONE' }}
